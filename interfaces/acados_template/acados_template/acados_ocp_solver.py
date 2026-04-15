@@ -32,26 +32,30 @@
 # POSSIBILITY OF SUCH DAMAGE.;
 #
 
-import sys, os, json
-import numpy as np
+import json
+import os
+import sys
+from copy import deepcopy
+from ctypes import *
 from datetime import datetime
 
-from ctypes import *
+import numpy as np
 
-from copy import deepcopy
-
-from .generate_c_code_explicit_ode import generate_c_code_explicit_ode
-from .generate_c_code_implicit_ode import generate_c_code_implicit_ode
-from .generate_c_code_gnsf import generate_c_code_gnsf
-from .generate_c_code_discrete_dynamics import generate_c_code_discrete_dynamics
-from .generate_c_code_constraint import generate_c_code_constraint
-from .generate_c_code_nls_cost import generate_c_code_nls_cost
-from .generate_c_code_external_cost import generate_c_code_external_cost
-from .acados_ocp import AcadosOcp
 from .acados_model import acados_model_strip_casadi_symbolics
-from .utils import is_column, is_empty, casadi_length, render_template,\
-     format_class_dict, ocp_check_against_layout, np_array_to_list, make_model_consistent,\
-     set_up_imported_gnsf_model, get_acados_path, get_ocp_nlp_layout, get_python_interface_path
+from .acados_ocp import AcadosOcp
+from .generate_c_code_constraint import generate_c_code_constraint
+from .generate_c_code_discrete_dynamics import \
+    generate_c_code_discrete_dynamics
+from .generate_c_code_explicit_ode import generate_c_code_explicit_ode
+from .generate_c_code_external_cost import generate_c_code_external_cost
+from .generate_c_code_gnsf import generate_c_code_gnsf
+from .generate_c_code_implicit_ode import generate_c_code_implicit_ode
+from .generate_c_code_nls_cost import generate_c_code_nls_cost
+from .utils import (casadi_length, format_class_dict, get_acados_path,
+                    get_ocp_nlp_layout, get_python_interface_path, is_column,
+                    is_empty, make_model_consistent, np_array_to_list,
+                    ocp_check_against_layout, render_template,
+                    set_up_imported_gnsf_model)
 
 
 def make_ocp_dims_consistent(acados_ocp):
@@ -184,7 +188,7 @@ def make_ocp_dims_consistent(acados_ocp):
 
     ## constraints
     # initial
-    if (constraints.lbx_0 == [] and constraints.ubx_0 == []):
+    if (constraints.lbx_0.size == 0 and constraints.ubx_0.size == 0):
         dims.nbx_0 = 0
     else:
         this_shape = constraints.lbx_0.shape
@@ -763,7 +767,7 @@ class AcadosOcpSolver:
     """
     if sys.platform=="win32":
         from ctypes import wintypes
-        dlclose = WinDLL('kernel32', use_last_error=True).FreeLibrary  
+        dlclose = WinDLL('kernel32', use_last_error=True).FreeLibrary
         dlclose.argtypes = [wintypes.HMODULE]
     else:
         dlclose = CDLL(None).dlclose
@@ -1549,7 +1553,7 @@ class AcadosOcpSolver:
                 value_ = np.ravel(value_, order='F')
             else:
                 raise Exception("Unknown api: '{}'".format(api))
-                
+
         if value_shape != tuple(dims):
             raise Exception('AcadosOcpSolver.constraints_set(): mismatching dimension' \
                 ' for field "{}" with dimension {} (you have {})'.format(field_, tuple(dims), value_shape))
